@@ -8,7 +8,7 @@ scifi-RNA-seq is a single cell RNA-seq technique, which allows user to pre-index
 Due to some configuration problems, the [original data analysis pipeline](https://github.com/epigen/scifiRNA-seq) could not be automatically run in my server. Therefore, I dissemble the pipeline into these five steps and run them manually.
 
 1. [Demultiplexing 1](./script/demultiplexing_1.sh): This step reads the bcl2 file (Illuminar raw data) and demultiplex the data into an unaligned, unmultiplexed bam file.
-2. [Demultiplexing 1](./script/demultiplexing_2.sh): This step performs a real demultiplexing step to create a bam file with all tag information. Different flags are specified to indicate the index in the bam file. For more information about demultiplexing step, please check the [original demultiplexing pipeline](https://github.com/epigen/scifiRNA-seq/blob/main/demultiplexing_guide.rst).
+2. [Demultiplexing 2](./script/demultiplexing_2.sh): This step performs a real demultiplexing step to create a bam file with all tag information. Different flags are specified to indicate the index in the bam file. For more information about demultiplexing step, please check the [original demultiplexing pipeline](https://github.com/epigen/scifiRNA-seq/blob/main/demultiplexing_guide.rst).
 3. [Map](./script/scifi_map.sh): This step performs mapping and counting process and generates a count matrix (cell-gene) for each well.
 4. [Filtering](./script/scifi_filter.sh): This step performs a filtering process to remove cells with low UMI counts.
 5. [Join](./script/scifi_join.sh): This step aggregates data from each well and generates a complete count matrix (cell-gene) for the experiment / sample.

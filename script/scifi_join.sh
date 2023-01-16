@@ -33,6 +33,7 @@ done
 for exp in $exp1 $exp2
 do
 	mkdir $filtered/$exp
+
 	scp $filtered/$exp*/*metrics_corrected.csv.gz $filtered/$exp
 	find $filtered/$exp -mindepth 1 -name '*metrics_corrected.csv.gz' -exec cat {} \; > $outputDir/$exp.metrics.csv.gz
     		echo 'r2,read,unique_umi,umi,gene,unique_fraction,sample_name' > $exp.header
@@ -40,4 +41,12 @@ do
     		cat $exp.header.gz $outputDir/$exp.metrics.csv.gz > $exp.tmp
     		mv $exp.tmp $outputDir/$exp.metrics.csv.gz
     		rm $exp.header.gz
+	scp $filtered/$exp*/*expression_corrected.csv.gz $filtered/$exp
+	find $filtered/$exp -mindepth 1 -name '*expression_corrected.csv.gz' -exec cat {} \; > $outputDir/$exp.expression.csv.gz
+		echo '['r2', 'gene', 'umi', 'sample_name']' > $exp.2.header
+		gzip $exp.2.header
+		cat $exp.2.header.gz $outputDir/$exp.expression.csv.gz > $exp.tmp2
+		mv $exp.tmp2 $outputDir/$exp.expression.csv.gz
+		rm $exp.header.2.gz
+
 done

@@ -12,13 +12,13 @@ if (length(args)==0) {
 
 ## Loading packages ====
 print("Loading packages")
-library(EnsDb.Hsapiens.v86)
-library(Seurat)
-library(patchwork)
-library(Matrix)
-library(dplyr)
-library(tidyr)
-library(data.table)
+### For a better reproducibility, please run the following line in the first time of use
+### By default, the downloaded packages will be saved in /Users/your_name/.checkpoint
+# library(checkpoint)
+# checkpoint("2023-01-18", r_version="4.1.2")
+packages_required <- c("EnsDb.Hsapiens.v86", "Seurat", "patchwork",
+                      "Matrix","dplyr","tidyr","data.table","checkpoint")
+lapply(packages_required, require, character.only = TRUE)
 print("Loading packages done!")
 
 ## Variables ====
@@ -154,4 +154,4 @@ print("Done!")
 # Issues
 ## In get_cellBarcodes
 ## To get the barcode, the last column is split into several new columns.
-## But the method is too spcific, should be improved.
+## But the method is too specific, should be improved.

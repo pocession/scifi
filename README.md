@@ -1,11 +1,25 @@
 # scifi
-A data process pipeline for ultra multiplexing single cell RNA-seq data (scifi-RNA-seq).
 
-## Description
-scifi-RNA-seq is a single cell RNA-seq technique, which allows user to pre-index >150K cells in 96-well plates and load more than one cell in single droplet. After in-silico demultiplexing, the transcriptomics in each cell could be retrieved. The workflow utilizes a standard microfluidic droplet generator (10x Genomics Chromium) and 10X ATAC-seq kit v3. Please check the [original publication](https://www.nature.com/articles/s41592-021-01153-z) for more details.
+A data process pipeline for ultra high throughput single cell RNA-seq data (scifi-RNA-seq).
+
+## Background
+
+Droplet-based single cell sequencing is a powerful tools in omics study. Within a standard droplet generator, cells are first mixed with oil-encapsulated droplet and undergo a series of biochemical reactions. This process generates a collection of droplet and each droplet contains oligo-indexed heredity materials from a single cell. However, to prevent more than two cells are loaded into one droplet, most of droplets have to be remained empty.Those droplets are still sequenced and creates a waste of sequencing throughput.
+
+To reduce the waste, a method called [scifi-RNA-seq](https://www.nature.com/articles/s41592-021-01153-z) was invented by Paul Datlinger et. al. This method utilizes a specific barcoding strategy to preindex >150K cells in 96-well plates and more than one cells are overloaded into one droplet.
+
+The workflow utilizes a standard microfluidic droplet generator (10x Genomics Chromium) and 10X ATAC-seq kit v3. Please check the [original publication](https://www.nature.com/articles/s41592-021-01153-z) for more details.
 
 ## Usage
-Due to some configuration problems, the [original data analysis pipeline](https://github.com/epigen/scifiRNA-seq) could not be automatically run in my server. Therefore, I dissemble the pipeline into these five steps and run them manually.
+
+- `Rscript --vanilla input.csv output`.
+- `input.csv` is the result from preprocessed data (see below) and output is the name for this experiment.
+- The App will create a folder with named `rds` and store the cleaned count matrix in `rds` object.
+- The App will also create another folder named `output` and store the final result in 10X format. These three files `matrix.mtx, genes.tsv, barcodes.tsv` could be used for downstream analysis in other softwares such as [Seurat](https://satijalab.org/seurat/articles/get_started.html).
+
+## Data preprocessing
+
+Due to some configuration problems, the [original data preprocessing pipeline](https://github.com/epigen/scifiRNA-seq) could not be automatically run in our server. Therefore, I dissemble the pipeline into these five steps and run them manually.
 
 1. [Demultiplexing 1](./script/demultiplexing_1.sh): This step reads the bcl2 file (Illuminar raw data) and demultiplex the data into an unaligned, unmultiplexed bam file.
 2. [Demultiplexing 2](./script/demultiplexing_2.sh): This step performs a real demultiplexing step to create a bam file with all tag information. Different flags are specified to indicate the index in the bam file. For more information about demultiplexing step, please check the [original demultiplexing pipeline](https://github.com/epigen/scifiRNA-seq/blob/main/demultiplexing_guide.rst).
@@ -14,5 +28,6 @@ Due to some configuration problems, the [original data analysis pipeline](https:
 5. [Join](./script/scifi_join.sh): This step aggregates data from each well and generates a complete count matrix (cell-gene) for the experiment / sample.
 
 ## Credits
-- [Original data analysis pipeline](https://github.com/epigen/scifiRNA-seq).
+
+- [Original data preprocessing pipeline](https://github.com/epigen/scifiRNA-seq).
 - [Original publication](https://www.nature.com/articles/s41592-021-01153-z).

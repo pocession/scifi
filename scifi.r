@@ -1,31 +1,40 @@
-# Libraries
-library(EnsDb.Hsapiens.v86)
-library(Seurat)
-library(patchwork)
-library(Matrix)
-library(dplyr)
-library(tidyr)
-library(data.table)
+#!/usr/bin/env Rscript
 
-# variable
-exp1_name <- "scifi#40532_Day1_Musa_scifi3_N703"
-exp2_name <- "scifi#40533_Day1_Musa_scifi2_N702"
+## Handling I/O ====
+args = commandArgs(trailingOnly=TRUE)
+if (length(args)==0) {
+  stop("At least one argument must be supplied (input file).n", call.=FALSE)
+} else if (length(args)==1) {
+  # default output file
+  print("There is only one argument. This argument is automatically taken as the input file")
+  args[2] = "output"
+}
 
-# path
-wd <- dirname(rstudioapi::getSourceEditorContext()$path)
-input <- file.path(wd,"joined")
-output <- file.path(wd,"preprocessed")
-exp1_output <- file.path(output,"scifi#40532_Day1_Musa_scifi3_N703")
-exp2_output <- file.path(output,"scifi#40533_Day1_Musa_scifi2_N702")
-dir.create(exp1_output,recursive = TRUE)
-dir.create(exp2_output,recursive = TRUE)
+## Loading packages ====
+print("Loading packages")
+### For a better reproducibility, please run the following line in the first time of use
+### By default, the downloaded packages will be saved in /Users/your_name/.checkpoint
+# library(checkpoint)
+# checkpoint("2023-01-18", r_version="4.1.2")
+packages_required <- c("EnsDb.Hsapiens.v86", "Seurat", "patchwork",
+                      "Matrix","dplyr","tidyr","data.table","checkpoint")
+lapply(packages_required, require, character.only = TRUE)
+print("Loading packages done!")
 
-# Set gene symbol db
-hs_db <- EnsDb.Hsapiens.v86
+## Variables ====
+exp <- args[2]
 
-# Functions
+## path ====
+wd <- getwd()
+input <- file.path(wd)
+output <- file.path(wd,args[2])
+rds_output <- file.path(wd,"rds")
+dir.create(output,recursive = TRUE)
+dir.create(rds_output,recursive = TRUE)
+print(paste0("The working path is ", wd))
 
-# Assign new barcodes
+# Functions ====
+## Assign new barcodes
 get_cellBarcodes <- function(df,colName) {
   x <- df %>%
     tidyr::separate(colName, c("exp_code1","Day","Musa","scifi3","exp_code2","well"),sep="_")
@@ -33,8 +42,8 @@ get_cellBarcodes <- function(df,colName) {
   return(x)
 }
 
-# Assign gene symbols
-# Use keytypes(db) to check keytypes
+## Assign gene symbols
+### Use keytypes(db) to check keytypes
 get_GeneSymbol <- function(df) {
   x <- df
   x <- x %>%
@@ -48,16 +57,16 @@ get_GeneSymbol <- function(df) {
   return(x)
 }
 
-# Assign numbers to NA in a data frame
-## Very slow
-get_ridNA <- function(df,num) {
-  x <- df
-  x[is.na(x)] <- num
-  return(x)
-}
+## Assign numbers to NA in a data frame
+### Very slow
+# get_ridNA <- function(df,num) {
+#   x <- df
+#   x[is.na(x)] <- num
+#   return(x)
+# }
 
 ## Fast method
-## Credit: https://stackoverflow.com/questions/7235657/fastest-way-to-replace-nas-in-a-large-data-table
+### Credit: https://stackoverflow.com/questions/7235657/fastest-way-to-replace-nas-in-a-large-data-table
 get_ridNA_dowle3 = function(DT, num) {
   x <- DT[,-1]
   
@@ -69,20 +78,20 @@ get_ridNA_dowle3 = function(DT, num) {
   ## }
   
   # or by number (slightly faster than by name) :
-   for (j in seq_len(ncol(x))) {
+  for (j in seq_len(ncol(x))) {
     set(x,which(is.na(x[[j]])),j,num)
-   }
+  }
   x <- cbind(DT[,1],x)
 }
 
-# Get matrix
+## Get matrix
 get_matrix <- function(df,firstCol) {
   x <- as.matrix(df[,-1])
   rownames(x) <- df$symbol
   return(x)
 }
 
-# Save to 10X object
+## Save to 10X object
 get_10X <- function(mtx, out.path, out.name) {
   x <- mtx
   path <- out.path
@@ -97,48 +106,52 @@ get_10X <- function(mtx, out.path, out.name) {
   write(x = colnames(x), file=file.path(path,"barcodes.tsv"))
 }
 
+# Read and clean input ====
+## Read
+input_file <- read.csv(file.path(input,args[1]))
+colnames(input_file) <- c("r2","gene","umi","sample_name")
 
-# input files
-list.files(input)
+## Clean data
+input_file <- get_cellBarcodes(input_file,"sample_name")
 
-# read input
-exp1 <- read.csv(file.path(input,"scifi#40532_Day1_Musa_scifi3_N703.expression.csv"))
-exp2 <- read.csv(file.path(input,"scifi#40533_Day1_Musa_scifi2_N702.expression.csv"))
-
-colnames(exp1) <- c("r2","gene","umi","sample_name")
-colnames(exp2) <- c("r2","gene","umi","sample_name")
-
-exp1 <- get_cellBarcodes(exp1,"sample_name")
-exp2 <- get_cellBarcodes(exp2,"sample_name")
-
-# converse ensembl to gene symbol
+# converse ensembl to gene symbol ====
 ## this step removes those unmapped gene too
-exp1.genesym <- get_GeneSymbol(exp1)
-exp2.genesym <- get_GeneSymbol(exp2)
+## Set gene symbol db
+hs_db <- EnsDb.Hsapiens.v86
+input_file <- get_GeneSymbol(input_file)
 
-# collapse cell barcode and gene symbol if needed
-exp1.summarized <- aggregate(umi~cellbarcode+symbol, exp1.genesym, sum)
-exp2.summarized <- aggregate(umi~cellbarcode+symbol, exp2.genesym, sum)
+# collapse cell barcode and gene symbol if needed ====
+input_file <- aggregate(umi~cellbarcode+symbol, input_file, sum)
 
-# create count matrix
-exp1.df <- exp1.summarized %>%
+# create count matrix ====
+## transpose long to wide table
+print("Now generating the count matrix, this might take a long time")
+input_file_df <- input_file %>%
   tidyr::pivot_wider(names_from = cellbarcode, values_from = umi)
 
-exp2.df <- exp2.summarized %>%
-  tidyr::pivot_wider(names_from = cellbarcode, values_from = umi)
+## Assign 0 to NA
+input_file_df <- get_ridNA_dowle3(input_file_df,0)
 
-# Assign 0 to NA
-exp1.df0 <- get_ridNA_dowle3(exp1.df,0)
-exp2.df0 <- get_ridNA_dowle3(exp2.df,0)
+# save count matrix to rds object ====
+saveRDS(input_file_df,file.path(rds_output,paste0(exp,".rds")))
+print(paste0("The cleaned count matrix is saved in rds object to: ", rds_output))
 
-# save count matrix
-saveRDS(exp1.df0,file.path(wd,"preprocessed",paste0("scifi#40532_Day1_Musa_scifi3_N703",".rds")))
-saveRDS(exp2.df0,file.path(wd,"preprocessed",paste0("scifi#40533_Day1_Musa_scifi2_N702",".rds")))
+# Get matrix ====
+input_file_mtx <- get_matrix(input_file_df,symbol)
 
-# Get matrix
-exp1.mtx <- get_matrix(exp1.df,symbol)
-exp2.mtx <- get_matrix(exp2.df,symbol)
+# Save results in 10X format ====
+get_10X(input_file_mtx, file.path(output), exp)
 
-# Save to 10X objects
-get_10X(exp1.mtx, file.path(exp1_output), "scifi#40532_Day1_Musa_scifi3_N703.expression")
-get_10X(exp2.mtx, file.path(exp2_output), "scifi#40533_Day1_Musa_scifi2_N702.expression")
+print(paste0("The results are save in 10X format to: ", output))
+print("Done!")
+
+# Generate test.csv for input
+# tmp_dir <- "/Users/hsieh/scifi/test/"
+# input_file <- read.csv(file.path(tmp_dir,"scifi#40532_Day1_Musa_scifi3_N703.expression.csv"))
+# tmp <- input_file[sample(nrow(input_file), 2000), ]
+# write.csv(tmp,file.path(tmp_dir, "test.csv"), row.names = FALSE)
+
+# Issues
+## In get_cellBarcodes
+## To get the barcode, the last column is split into several new columns.
+## But the method is too specific, should be improved.

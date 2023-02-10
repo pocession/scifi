@@ -12,7 +12,7 @@ The workflow utilizes a standard microfluidic droplet generator (10x Genomics Ch
 
 ## Usage
 
-- `Rscript --vanilla input.csv output`.
+- `Rscript --vanilla script.R input.csv output`.
 - `input.csv` is the file from preprocessed data pipeline (see below) and output is the name for this experiment.
 - The App will create a folder named `rds` and store the cleaned count matrix in `rds` object.
 - The App will also create another folder named `output` and store the final result in 10X format. These three files `matrix.mtx, genes.tsv, barcodes.tsv` could be used for downstream analysis in other softwares such as [Seurat](https://satijalab.org/seurat/articles/get_started.html).
